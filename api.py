@@ -1,3 +1,4 @@
+print("VERSÃO NOVA DA API")
 print("API INICIANDO...")
 
 from fastapi import FastAPI
