@@ -1,3 +1,5 @@
+print("API INICIANDO...")
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 import faiss
@@ -7,16 +9,21 @@ from sentence_transformers import SentenceTransformer
 
 from llm_groq import responder
 
+print("Imports carregados")
+
 app = FastAPI()
 
 print("Carregando modelo...")
 model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
 
-print("Carregando base...")
+print("Carregando índice FAISS...")
 index = faiss.read_index("index.faiss")
 
+print("Carregando textos...")
 with open("textos.pkl", "rb") as f:
     textos = pickle.load(f)
+
+print("Tudo carregado com sucesso!")
 
 
 class Pergunta(BaseModel):
