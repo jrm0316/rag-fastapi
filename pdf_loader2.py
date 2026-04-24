@@ -38,12 +38,15 @@ def carregar_pdf(caminho):
 
     for i, pagina in enumerate(reader.pages[:10]):
         texto = pagina.extract_text()
+
+        if texto:
+            texto = texto[:1000]
         
         if texto:
             texto = limpar_texto(texto)
             partes = dividir_texto(texto)
 
-            for parte in partes:
+            for parte in partes[:3]:
                 chunks.append({
                     "texto": parte,
                     "pagina": i + 1
