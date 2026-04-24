@@ -1,4 +1,4 @@
-print("VERSÃO FINAL API LEVE")
+print("INICIANDO API...")
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -12,21 +12,32 @@ from llm_groq import responder
 
 app = FastAPI()
 
-print("Carregando índice FAISS...")
-index = faiss.read_index("index.faiss")
+# 🔍 DEBUG: ver arquivos disponíveis
+print("Arquivos na pasta:")
+print(os.listdir())
 
-print("Carregando textos...")
-with open("textos.pkl", "rb") as f:
-    textos = pickle.load(f)
+# 🔹 carregar base com segurança
+try:
+    index = faiss.read_index("index.faiss")
+    print("index.faiss carregado")
+except Exception as e:
+    print("ERRO ao carregar index.faiss:", e)
+    index = None
 
-print("Base carregada com sucesso!")
+try:
+    with open("textos.pkl", "rb") as f:
+        textos = pickle.load(f)
+    print("textos.pkl carregado")
+except Exception as e:
+    print("ERRO ao carregar textos.pkl:", e)
+    textos = []
 
 
-# 🔹 pega token do ambiente
+#  token do HuggingFace
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 
-# 🔹 função para gerar embedding via API (leve)
+# 🔹 gerar embedding via API (leve)
 def gerar_embedding(texto):
     url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-MiniLM-L3-v2"
 
@@ -37,11 +48,11 @@ def gerar_embedding(texto):
     response = requests.post(url, headers=headers, json={"inputs": texto})
 
     if response.status_code != 200:
-        raise Exception(f"Erro na API HuggingFace: {response.text}")
+        raise Exception(f"Erro HuggingFace: {response.text}")
 
     embedding = np.array(response.json()).astype("float32")
 
-    # garantir formato correto (1, dim)
+    # ajustar formato
     if len(embedding.shape) == 3:
         embedding = embedding.mean(axis=1)
 
@@ -54,25 +65,31 @@ class Pergunta(BaseModel):
 
 # 🔹 busca FAISS
 def buscar_similares(query, k=3):
+    if index is None:
+        return []
+
     query_embedding = gerar_embedding(query)
 
     distancias, indices = index.search(query_embedding, k)
 
     resultados = []
     for i, idx in enumerate(indices[0]):
-        resultados.append({
-            "texto": textos[idx]["texto"],
-            "pagina": textos[idx]["pagina"]
-        })
+        if idx < len(textos):
+            resultados.append({
+                "texto": textos[idx]["texto"],
+                "pagina": textos[idx]["pagina"]
+            })
 
     return resultados
 
 
+# 🔹 rota teste
 @app.get("/")
 def home():
     return {"status": "API rodando"}
 
 
+# 🔹 rota principal
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
     resultados = buscar_similares(dado.pergunta)
