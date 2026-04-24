@@ -105,7 +105,7 @@ def perguntar(dado: Pergunta):
 
         print("Contexto:", contexto[:200])
 
-        resposta = responder(dado.pergunta, contexto)
+        resposta = f"Pergunta recebida: {dado.pergunta}"
         print("Resposta gerada")
 
         return {
