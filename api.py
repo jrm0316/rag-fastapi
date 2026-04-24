@@ -92,17 +92,28 @@ def home():
 # 🔹 rota principal
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
-    resultados = buscar_similares(dado.pergunta)
+    try:
+        print("Pergunta:", dado.pergunta)
 
-    contexto = "\n".join([
-        f"[Página {r['pagina']}] {r['texto']}"
-        for r in resultados
-    ])
+        resultados = buscar_similares(dado.pergunta)
+        print("Resultados:", resultados)
 
-    resposta = responder(dado.pergunta, contexto)
+        contexto = "\n".join([
+            f"[Página {r['pagina']}] {r['texto']}"
+            for r in resultados
+        ])
 
-    return {
-        "pergunta": dado.pergunta,
-        "resposta": resposta,
-        "paginas": [r["pagina"] for r in resultados]
-    }
+        print("Contexto:", contexto[:200])
+
+        resposta = responder(dado.pergunta, contexto)
+        print("Resposta gerada")
+
+        return {
+            "pergunta": dado.pergunta,
+            "resposta": resposta,
+            "paginas": [r["pagina"] for r in resultados]
+        }
+
+    except Exception as e:
+        print("ERRO:", e)
+        return {"erro": str(e)}
