@@ -1,83 +1,46 @@
-print("INICIANDO API...")
+print("API INICIANDO...")
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 import faiss
 import pickle
 import numpy as np
-import requests
-import os
 
 from llm_groq import responder
 
 app = FastAPI()
 
-# 🔍 DEBUG: ver arquivos disponíveis
-print("Arquivos na pasta:")
-print(os.listdir())
+# 🔹 carregar base pronta
+print("Carregando index...")
+index = faiss.read_index("index.faiss")
 
-# 🔹 carregar base com segurança
-try:
-    index = faiss.read_index("index.faiss")
-    print("index.faiss carregado")
-except Exception as e:
-    print("ERRO ao carregar index.faiss:", e)
-    index = None
+print("Carregando textos...")
+with open("textos.pkl", "rb") as f:
+    textos = pickle.load(f)
 
-try:
-    with open("textos.pkl", "rb") as f:
-        textos = pickle.load(f)
-    print("textos.pkl carregado")
-except Exception as e:
-    print("ERRO ao carregar textos.pkl:", e)
-    textos = []
-
-
-#  token do HuggingFace
-HF_TOKEN = os.getenv("HF_TOKEN")
-
-
-# 🔹 gerar embedding via API (leve)
-def gerar_embedding(texto):
-    import requests
-    import numpy as np
-    import os
-
-    API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-MiniLM-L3-v2"
-
-    headers = {
-        "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
-    }
-
-    response = requests.post(API_URL, headers=headers, json={"inputs": texto})
-
-    if response.status_code != 200:
-        raise Exception(f"Erro HuggingFace: {response.text}")
-
-    embedding = np.array(response.json()).astype("float32")
-
-    # ajustar formato
-    if len(embedding.shape) == 3:
-        embedding = embedding.mean(axis=1)
-
-    return embedding
-
+print("Tudo carregado!")
 
 class Pergunta(BaseModel):
     pergunta: str
 
 
-# 🔹 busca FAISS
-def buscar_similares(query, k=3):
-    if index is None:
-        return []
+#  EMBEDDING SIMPLES (sem modelo pesado)
+def texto_para_vetor(texto):
+    vetor = np.zeros(384, dtype="float32")
 
-    query_embedding = gerar_embedding(query)
+    for i, char in enumerate(texto[:384]):
+        vetor[i] = ord(char) / 1000
+
+    return vetor.reshape(1, -1)
+
+
+def buscar_similares(query, k=3):
+    query_embedding = texto_para_vetor(query)
 
     distancias, indices = index.search(query_embedding, k)
 
     resultados = []
-    for i, idx in enumerate(indices[0]):
+    for idx in indices[0]:
         if idx < len(textos):
             resultados.append({
                 "texto": textos[idx]["texto"],
@@ -87,30 +50,22 @@ def buscar_similares(query, k=3):
     return resultados
 
 
-# 🔹 rota teste
 @app.get("/")
 def home():
-    return {"status": "API rodando"}
+    return {"status": "API rodando 🚀"}
 
 
-# 🔹 rota principal
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
     try:
-        print("Pergunta:", dado.pergunta)
-
         resultados = buscar_similares(dado.pergunta)
-        print("Resultados:", resultados)
 
         contexto = "\n".join([
             f"[Página {r['pagina']}] {r['texto']}"
             for r in resultados
         ])
 
-        print("Contexto:", contexto[:200])
-
-        resposta = f"Pergunta recebida: {dado.pergunta}"
-        print("Resposta gerada")
+        resposta = responder(dado.pergunta, contexto)
 
         return {
             "pergunta": dado.pergunta,
@@ -119,5 +74,4 @@ def perguntar(dado: Pergunta):
         }
 
     except Exception as e:
-        print("ERRO:", e)
         return {"erro": str(e)}
