@@ -39,13 +39,17 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 # 🔹 gerar embedding via API (leve)
 def gerar_embedding(texto):
-    url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-MiniLM-L3-v2"
+    import requests
+    import numpy as np
+    import os
+
+    API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-MiniLM-L3-v2"
 
     headers = {
-        "Authorization": f"Bearer {HF_TOKEN}"
+        "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
     }
 
-    response = requests.post(url, headers=headers, json={"inputs": texto})
+    response = requests.post(API_URL, headers=headers, json={"inputs": texto})
 
     if response.status_code != 200:
         raise Exception(f"Erro HuggingFace: {response.text}")
