@@ -73,7 +73,7 @@ def perguntar(dado: Pergunta):
             for r in resultados
         ])
 
-        print("Contexto (resumo):", contexto[:200])
+        print("CONTEXTO COMPLETO:\n", contexto)
 
         resposta = responder(dado.pergunta, contexto)
 
