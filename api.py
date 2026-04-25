@@ -38,7 +38,7 @@ def texto_para_vetor(texto):
 
 
 # 🔹 busca no FAISS
-def buscar_similares(query, k=13):
+def buscar_similares(query, k=20):
     query_embedding = texto_para_vetor(query)
 
     distancias, indices = index.search(query_embedding, k)

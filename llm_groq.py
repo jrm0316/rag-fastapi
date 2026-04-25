@@ -8,8 +8,9 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def responder(pergunta, contexto):
     prompt = f"""
-Use o contexto abaixo para responder a pergunta.
-Se não encontrar diretamente, tente inferir com base no conteúdo.
+Responda a pergunta usando o contexto abaixo.
+
+Se não houver definição explícita, explique com base no conhecimento geral e no contexto.
 
 Contexto:
 {contexto}
@@ -17,7 +18,7 @@ Contexto:
 Pergunta:
 {pergunta}
 
-Resposta clara e direta:
+Resposta clara, objetiva e didática:
 """
     
     resposta = client.chat.completions.create(
