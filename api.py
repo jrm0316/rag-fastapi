@@ -5,17 +5,12 @@ from pydantic import BaseModel
 import faiss
 import pickle
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 from llm_groq import responder
 
 app = FastAPI()
 
-# 🔹 carregar modelo (leve)
-print("🤖 Carregando modelo de embedding...")
-model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
-
-# 🔹 carregar base pronta
+# 🔹 carregar base
 print("📂 Carregando índice FAISS...")
 index = faiss.read_index("index.faiss")
 
@@ -26,20 +21,25 @@ with open("textos.pkl", "rb") as f:
 print("🔥 Total de textos:", len(textos))
 print("✅ Tudo carregado com sucesso!")
 
-# 🔹 entrada da API
+
+# 🔹 modelo de entrada
 class Pergunta(BaseModel):
     pergunta: str
 
 
-# 🔹 gerar embedding da pergunta (leve)
-def gerar_embedding(texto):
-    embedding = model.encode([texto])
-    return np.array(embedding).astype("float32")
+# 🔥 EMBEDDING LEVE (mesmo usado na base)
+def texto_para_vetor(texto):
+    vetor = np.zeros(384, dtype="float32")
+
+    for i, char in enumerate(texto[:384]):
+        vetor[i] = ord(char) / 1000
+
+    return vetor.reshape(1, -1)
 
 
 # 🔹 busca no FAISS
 def buscar_similares(query, k=3):
-    query_embedding = gerar_embedding(query)
+    query_embedding = texto_para_vetor(query)
 
     distancias, indices = index.search(query_embedding, k)
 
