@@ -1,4 +1,4 @@
-print("🚀 API INICIANDO...")
+print("API INICIANDO...")
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -7,10 +7,19 @@ import pickle
 import numpy as np
 
 from llm_groq import responder
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# 🔥 Lazy loading (resolve timeout no Render)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # libera tudo (pra teste)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Lazy loading (resolve timeout no Render)
 index = None
 textos = None
 
@@ -19,15 +28,15 @@ def carregar_base():
     global index, textos
 
     if index is None or textos is None:
-        print("📂 Carregando base...")
+        print("Carregando base...")
 
         index = faiss.read_index("index.faiss")
 
         with open("textos.pkl", "rb") as f:
             textos = pickle.load(f)
 
-        print("🔥 Total de textos:", len(textos))
-        print("✅ Base carregada com sucesso!")
+        print("Total de textos:", len(textos))
+        print("Base carregada com sucesso!")
 
 
 # 🔹 modelo de entrada
@@ -35,7 +44,7 @@ class Pergunta(BaseModel):
     pergunta: str
 
 
-# 🔥 EMBEDDING LEVE (igual ao gerar_base.py)
+# EMBEDDING LEVE (igual ao gerar_base.py)
 def texto_para_vetor(texto):
     vetor = np.zeros(384, dtype="float32")
 
@@ -45,7 +54,7 @@ def texto_para_vetor(texto):
     return vetor.reshape(1, -1)
 
 
-# 🔥 BUSCA MELHORADA (com filtro)
+# BUSCA MELHORADA (com filtro)
 def buscar_similares(query, k=20):
     query_embedding = texto_para_vetor(query)
 
@@ -73,19 +82,19 @@ def home():
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
     try:
-        carregar_base()  # 🔥 carrega só quando precisar
+        carregar_base()  # carrega só quando precisar
 
-        print("📥 Pergunta:", dado.pergunta)
+        print("Pergunta:", dado.pergunta)
 
         resultados = buscar_similares(dado.pergunta)
 
-        # 🔥 CONTEXTO MELHOR FORMATADO
+        # CONTEXTO MELHOR FORMATADO
         contexto = "\n\n---\n\n".join([
             f"[Página {r['pagina']}]\n{r['texto']}"
             for r in resultados
         ])
 
-        print("📄 Contexto (resumo):", contexto[:300])
+        print("Contexto (resumo):", contexto[:300])
 
         resposta = responder(dado.pergunta, contexto)
 
@@ -96,5 +105,5 @@ def perguntar(dado: Pergunta):
         }
 
     except Exception as e:
-        print("❌ ERRO:", e)
+        print("ERRO:", e)
         return {"erro": str(e)}
