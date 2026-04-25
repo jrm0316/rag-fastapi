@@ -1,6 +1,5 @@
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import pickle
 
 from pdf_loader2 import carregar_pdf
@@ -10,17 +9,29 @@ textos = carregar_pdf("Sistemas.pdf")
 
 textos_str = [item["texto"] for item in textos]
 
-print("Gerando embeddings...")
-model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-embeddings = model.encode(textos_str)
+
+# EMBEDDING LEVE (SEM MODELO)
+def texto_para_vetor(texto):
+    vetor = np.zeros(384, dtype="float32")
+
+    for i, char in enumerate(texto[:384]):
+        vetor[i] = ord(char) / 1000
+
+    return vetor
+
+
+print("Gerando embeddings (leve)...")
+embeddings = [texto_para_vetor(t) for t in textos_str]
 embeddings = np.array(embeddings).astype("float32")
+
 
 print("Criando índice...")
 dim = embeddings.shape[1]
 index = faiss.IndexFlatL2(dim)
 index.add(embeddings)
 
-#  salvar tudo
+
+# 🔹 salvar tudo
 faiss.write_index(index, "index.faiss")
 
 with open("textos.pkl", "wb") as f:
