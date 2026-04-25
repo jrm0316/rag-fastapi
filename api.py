@@ -17,6 +17,7 @@ index = faiss.read_index("index.faiss")
 print("Carregando textos...")
 with open("textos.pkl", "rb") as f:
     textos = pickle.load(f)
+print("Total de textos:", len(textos))
 
 print("Tudo carregado!")
 
