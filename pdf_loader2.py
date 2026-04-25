@@ -36,7 +36,7 @@ def carregar_pdf(caminho):
     reader = PdfReader(caminho)
     chunks = []
 
-    for i, pagina in enumerate(reader.pages[:10]):
+    for i, pagina in enumerate(reader.pages[:500]): #10
         texto = pagina.extract_text()
 
         if texto:
