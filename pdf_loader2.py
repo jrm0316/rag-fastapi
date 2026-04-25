@@ -40,7 +40,7 @@ def carregar_pdf(caminho):
         texto = pagina.extract_text()
 
         if texto:
-            texto = texto[:1000]
+            texto = texto[:2000]
         
         if texto:
             texto = limpar_texto(texto)

@@ -1,4 +1,4 @@
-print("🚀 API INICIANDO...")
+print("API INICIANDO...")
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -11,15 +11,15 @@ from llm_groq import responder
 app = FastAPI()
 
 # 🔹 carregar base
-print("📂 Carregando índice FAISS...")
+print("Carregando índice FAISS...")
 index = faiss.read_index("index.faiss")
 
-print("📂 Carregando textos...")
+print("Carregando textos...")
 with open("textos.pkl", "rb") as f:
     textos = pickle.load(f)
 
-print("🔥 Total de textos:", len(textos))
-print("✅ Tudo carregado com sucesso!")
+print("Total de textos:", len(textos))
+print("Tudo carregado com sucesso!")
 
 
 # 🔹 modelo de entrada
@@ -27,7 +27,7 @@ class Pergunta(BaseModel):
     pergunta: str
 
 
-# 🔥 EMBEDDING LEVE (mesmo usado na base)
+# EMBEDDING LEVE (mesmo usado na base)
 def texto_para_vetor(texto):
     vetor = np.zeros(384, dtype="float32")
 
@@ -38,7 +38,7 @@ def texto_para_vetor(texto):
 
 
 # 🔹 busca no FAISS
-def buscar_similares(query, k=3):
+def buscar_similares(query, k=13):
     query_embedding = texto_para_vetor(query)
 
     distancias, indices = index.search(query_embedding, k)
@@ -57,14 +57,14 @@ def buscar_similares(query, k=3):
 # 🔹 rota de teste
 @app.get("/")
 def home():
-    return {"status": "API rodando 🚀"}
+    return {"status": "API rodando"}
 
 
 # 🔹 rota principal
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
     try:
-        print("📥 Pergunta:", dado.pergunta)
+        print("Pergunta:", dado.pergunta)
 
         resultados = buscar_similares(dado.pergunta)
 
@@ -73,7 +73,7 @@ def perguntar(dado: Pergunta):
             for r in resultados
         ])
 
-        print("📄 Contexto (resumo):", contexto[:200])
+        print("Contexto (resumo):", contexto[:200])
 
         resposta = responder(dado.pergunta, contexto)
 
@@ -84,5 +84,5 @@ def perguntar(dado: Pergunta):
         }
 
     except Exception as e:
-        print("❌ ERRO:", e)
+        print("ERRO:", e)
         return {"erro": str(e)}
