@@ -1,4 +1,4 @@
-print("API INICIANDO...")
+print("🚀 API INICIANDO...")
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -10,16 +10,24 @@ from llm_groq import responder
 
 app = FastAPI()
 
-# 🔹 carregar base
-print("Carregando índice FAISS...")
-index = faiss.read_index("index.faiss")
+# 🔥 Lazy loading (resolve timeout no Render)
+index = None
+textos = None
 
-print("Carregando textos...")
-with open("textos.pkl", "rb") as f:
-    textos = pickle.load(f)
 
-print("Total de textos:", len(textos))
-print("Tudo carregado com sucesso!")
+def carregar_base():
+    global index, textos
+
+    if index is None or textos is None:
+        print("📂 Carregando base...")
+
+        index = faiss.read_index("index.faiss")
+
+        with open("textos.pkl", "rb") as f:
+            textos = pickle.load(f)
+
+        print("🔥 Total de textos:", len(textos))
+        print("✅ Base carregada com sucesso!")
 
 
 # 🔹 modelo de entrada
@@ -27,7 +35,7 @@ class Pergunta(BaseModel):
     pergunta: str
 
 
-# EMBEDDING LEVE (mesmo usado na base)
+# 🔥 EMBEDDING LEVE (igual ao gerar_base.py)
 def texto_para_vetor(texto):
     vetor = np.zeros(384, dtype="float32")
 
@@ -37,43 +45,47 @@ def texto_para_vetor(texto):
     return vetor.reshape(1, -1)
 
 
-# 🔹 busca no FAISS
+# 🔥 BUSCA MELHORADA (com filtro)
 def buscar_similares(query, k=20):
     query_embedding = texto_para_vetor(query)
 
     distancias, indices = index.search(query_embedding, k)
 
     resultados = []
-    for idx in indices[0]:
-        if idx < len(textos):
+
+    for i, idx in enumerate(indices[0]):
+        if idx < len(textos) and distancias[0][i] < 50:
             resultados.append({
                 "texto": textos[idx]["texto"],
                 "pagina": textos[idx]["pagina"]
             })
 
-    return resultados
+    return resultados[:5]  # só os melhores
 
 
 # 🔹 rota de teste
 @app.get("/")
 def home():
-    return {"status": "API rodando"}
+    return {"status": "API rodando 🚀"}
 
 
 # 🔹 rota principal
 @app.post("/perguntar")
 def perguntar(dado: Pergunta):
     try:
-        print("Pergunta:", dado.pergunta)
+        carregar_base()  # 🔥 carrega só quando precisar
+
+        print("📥 Pergunta:", dado.pergunta)
 
         resultados = buscar_similares(dado.pergunta)
 
-        contexto = "\n".join([
-            f"[Página {r['pagina']}] {r['texto']}"
+        # 🔥 CONTEXTO MELHOR FORMATADO
+        contexto = "\n\n---\n\n".join([
+            f"[Página {r['pagina']}]\n{r['texto']}"
             for r in resultados
         ])
 
-        print("CONTEXTO COMPLETO:\n", contexto)
+        print("📄 Contexto (resumo):", contexto[:300])
 
         resposta = responder(dado.pergunta, contexto)
 
@@ -84,5 +96,5 @@ def perguntar(dado: Pergunta):
         }
 
     except Exception as e:
-        print("ERRO:", e)
+        print("❌ ERRO:", e)
         return {"erro": str(e)}
